@@ -10,81 +10,6 @@ import { useAuth } from '@/context/AuthContext';
 import { MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-const FALLBACK_SERVICES: Service[] = [
-  {
-    _id: '65e01234567890abcdef0001',
-    vendorId: { name: 'Aura Lens Studios', businessName: 'Aura Lens Studios', email: 'contact@auralens.com' } as any,
-    serviceName: 'Cinematic Golden Hour Wedding Photography',
-    category: 'Photography & Videography',
-    description: 'Full-day documentary wedding photojournalism with drone aerial videography and luxury photo album.',
-    price: 1850,
-    location: 'Charleston, SC',
-    images: ['https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: '65e01234567890abcdef0002',
-    vendorId: { name: 'Magnolia Manor Estate', businessName: 'Magnolia Manor', email: 'events@magnoliamanor.com' } as any,
-    serviceName: 'Historic Waterfront Botanical Garden Venue',
-    category: 'Wedding Venues',
-    description: 'Picturesque estate featuring ancient live oaks, Spanish moss, private bridal suite, and grand ballroom.',
-    price: 4500,
-    location: 'Savannah, GA',
-    images: ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: '65e01234567890abcdef0003',
-    vendorId: { name: 'Fleur & Velvet Botanical Design', businessName: 'Fleur & Velvet', email: 'hello@fleurvelvet.com' } as any,
-    serviceName: 'Custom Luxury Floral Arches & Centerpieces',
-    category: 'Decoration & Florist',
-    description: 'Artisanal ceremony floral installations, lush organic bouquets, and tablescape candle stylings.',
-    price: 1200,
-    location: 'Austin, TX',
-    images: ['https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: '65e01234567890abcdef0004',
-    vendorId: { name: 'Epicurean Feast Banquet Co.', businessName: 'Epicurean Feast', email: 'catering@epicurean.com' } as any,
-    serviceName: 'Gourmet 4-Course Plated Dinner & Wine Pairing',
-    category: 'Catering Services',
-    description: 'Locally sourced farm-to-table banquet menu with sommelier curated natural wine pairings and dessert stations.',
-    price: 2400,
-    location: 'Napa Valley, CA',
-    images: ['https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: '65e01234567890abcdef0005',
-    vendorId: { name: 'Elysian Bridal Glamour', businessName: 'Elysian Bridal', email: 'glam@elysianbridal.com' } as any,
-    serviceName: 'Bridal Party Hair & Airbrush HD Makeup Package',
-    category: 'Makeup & Styling',
-    description: 'On-location luxury hair styling and waterproof airbrush bridal artistry for bride and bridesmaids.',
-    price: 850,
-    location: 'Miami, FL',
-    images: ['https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: '65e01234567890abcdef0006',
-    vendorId: { name: 'Atelier Romance Haute Couture', businessName: 'Atelier Romance', email: 'fitting@atelierromance.com' } as any,
-    serviceName: 'Bespoke Hand-Embroidered Bridal Gown Fitting',
-    category: 'Wedding Fashion',
-    description: 'Custom handcrafted bridal silk gowns with French lace embroidery, bespoke veil, and tailored alterations.',
-    price: 3200,
-    location: 'New York, NY',
-    images: ['https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=800&q=80'],
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  }
-];
-
 export const FeaturedServices: React.FC = () => {
   const { user } = useAuth();
   const router = useRouter();
@@ -95,20 +20,11 @@ export const FeaturedServices: React.FC = () => {
     const fetchServices = async () => {
       try {
         const data = await api.get<{ success: boolean; services: Service[] }>('/services/featured');
-        if (data.success && data.services && data.services.length >= 6) {
+        if (data.success && Array.isArray(data.services)) {
           setServices(data.services);
-        } else {
-          // If database has fewer than 6, combine with curated fallback list
-          const combined = [...(data.services || [])];
-          for (const fallback of FALLBACK_SERVICES) {
-            if (combined.length < 6 && !combined.some(s => s._id === fallback._id)) {
-              combined.push(fallback);
-            }
-          }
-          setServices(combined);
         }
       } catch (err) {
-        setServices(FALLBACK_SERVICES);
+        console.error('Failed to load featured services:', err);
       } finally {
         setLoading(false);
       }
@@ -152,6 +68,15 @@ export const FeaturedServices: React.FC = () => {
 
         {loading ? (
           <LoadingSpinner text="Loading featured services..." />
+        ) : services.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-rose-100 max-w-lg mx-auto p-8 shadow-xs">
+            <Sparkles className="w-8 h-8 text-rose-400 mx-auto mb-3" />
+            <h3 className="text-lg font-serif font-bold text-stone-900 mb-1">No featured services yet</h3>
+            <p className="text-sm text-stone-500 mb-6">Explore our marketplace to discover all wedding vendors and services.</p>
+            <Link href="/services" className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 transition">
+              Explore All Services
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.slice(0, 6).map((service, index) => {
