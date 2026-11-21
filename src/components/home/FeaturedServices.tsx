@@ -12,7 +12,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const FALLBACK_SERVICES: Service[] = [
   {
-    _id: 'sample-1',
+    _id: '65e01234567890abcdef0001',
     vendorId: { name: 'Aura Lens Studios', businessName: 'Aura Lens Studios', email: 'contact@auralens.com' } as any,
     serviceName: 'Cinematic Golden Hour Wedding Photography',
     category: 'Photography & Videography',
@@ -24,7 +24,7 @@ const FALLBACK_SERVICES: Service[] = [
     createdAt: new Date().toISOString()
   },
   {
-    _id: 'sample-2',
+    _id: '65e01234567890abcdef0002',
     vendorId: { name: 'Magnolia Manor Estate', businessName: 'Magnolia Manor', email: 'events@magnoliamanor.com' } as any,
     serviceName: 'Historic Waterfront Botanical Garden Venue',
     category: 'Wedding Venues',
@@ -36,7 +36,7 @@ const FALLBACK_SERVICES: Service[] = [
     createdAt: new Date().toISOString()
   },
   {
-    _id: 'sample-3',
+    _id: '65e01234567890abcdef0003',
     vendorId: { name: 'Fleur & Velvet Botanical Design', businessName: 'Fleur & Velvet', email: 'hello@fleurvelvet.com' } as any,
     serviceName: 'Custom Luxury Floral Arches & Centerpieces',
     category: 'Decoration & Florist',
@@ -48,7 +48,7 @@ const FALLBACK_SERVICES: Service[] = [
     createdAt: new Date().toISOString()
   },
   {
-    _id: 'sample-4',
+    _id: '65e01234567890abcdef0004',
     vendorId: { name: 'Epicurean Feast Banquet Co.', businessName: 'Epicurean Feast', email: 'catering@epicurean.com' } as any,
     serviceName: 'Gourmet 4-Course Plated Dinner & Wine Pairing',
     category: 'Catering Services',
@@ -60,7 +60,7 @@ const FALLBACK_SERVICES: Service[] = [
     createdAt: new Date().toISOString()
   },
   {
-    _id: 'sample-5',
+    _id: '65e01234567890abcdef0005',
     vendorId: { name: 'Elysian Bridal Glamour', businessName: 'Elysian Bridal', email: 'glam@elysianbridal.com' } as any,
     serviceName: 'Bridal Party Hair & Airbrush HD Makeup Package',
     category: 'Makeup & Styling',
@@ -72,7 +72,7 @@ const FALLBACK_SERVICES: Service[] = [
     createdAt: new Date().toISOString()
   },
   {
-    _id: 'sample-6',
+    _id: '65e01234567890abcdef0006',
     vendorId: { name: 'Atelier Romance Haute Couture', businessName: 'Atelier Romance', email: 'fitting@atelierromance.com' } as any,
     serviceName: 'Bespoke Hand-Embroidered Bridal Gown Fitting',
     category: 'Wedding Fashion',
