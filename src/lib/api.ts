@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = rawBaseUrl.endsWith('/api')
+  ? rawBaseUrl.replace(/\/+$/, '')
+  : `${rawBaseUrl.replace(/\/+$/, '')}/api`;
 
 interface RequestOptions extends RequestInit {
   token?: string;
