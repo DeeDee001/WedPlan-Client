@@ -79,7 +79,7 @@ WedPlan is an all-in-one wedding marketplace enabling engaged couples to discove
 ---
 
 ## 🔐 Environment Variables
-Create `.env.local` in the project root:
+Create `.env` in the project root:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
@@ -119,3 +119,4 @@ npm start
 ## 🧪 Evaluation Credentials
 - **Admin Email**: `admin@wedplan.com`
 - **Admin Password**: `Admin123!`
+
