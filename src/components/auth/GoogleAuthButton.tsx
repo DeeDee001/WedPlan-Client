@@ -34,10 +34,31 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [testName, setTestName] = useState('');
+  const [btnRendered, setBtnRendered] = useState(false);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // Handle the credential callback from Google Identity Services
+  // Complete login with returned user & token
+  const completeAuth = (res: any) => {
+    if (res.success && res.token && res.user) {
+      login(res.token, res.user);
+      toast.success(`Welcome back, ${res.user.name}!`);
+
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else if (res.user.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else if (res.user.role === 'vendor') {
+        router.push('/dashboard/vendor');
+      } else {
+        router.push('/dashboard/customer');
+      }
+    } else {
+      toast.error(res.message || 'Google authentication failed.');
+    }
+  };
+
+  // 1. Handle credential response from Google Identity Services (ID Token)
   const handleCredentialResponse = async (response: any) => {
     if (!response || !response.credential) {
       toast.error('Did not receive credentials from Google.');
@@ -57,22 +78,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
         businessName: role === 'vendor' ? businessName : undefined
       });
 
-      if (res.success && res.token && res.user) {
-        login(res.token, res.user);
-        toast.success(`Welcome, ${res.user.name}! Signed in with Google.`);
-
-        if (redirectUrl) {
-          router.push(redirectUrl);
-        } else if (res.user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (res.user.role === 'vendor') {
-          router.push('/dashboard/vendor');
-        } else {
-          router.push('/dashboard/customer');
-        }
-      } else {
-        toast.error(res.message || 'Google sign-in failed.');
-      }
+      completeAuth(res);
     } catch (error: any) {
       toast.error(error.message || 'Google authentication failed.');
     } finally {
@@ -80,9 +86,11 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
     }
   };
 
-  // Initialize Google Identity Services
+  // 2. Initialize Google Identity Services & Render Official Button
   useEffect(() => {
-    const initGsi = () => {
+    let checkTimer: any = null;
+
+    const initGoogle = () => {
       if (typeof window !== 'undefined' && window.google?.accounts?.id && clientId) {
         try {
           window.google.accounts.id.initialize({
@@ -101,45 +109,92 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
               text: 'continue_with',
               shape: 'rectangular',
               logo_alignment: 'left',
-              width: 380
+              width: 360
             });
+            setBtnRendered(true);
           }
         } catch (err) {
-          console.warn('GSI Initialization warning:', err);
+          console.warn('GSI renderButton error:', err);
         }
       }
     };
 
     if (window.google?.accounts?.id) {
-      initGsi();
+      initGoogle();
     } else {
-      const timer = setInterval(() => {
+      checkTimer = setInterval(() => {
         if (window.google?.accounts?.id) {
-          initGsi();
-          clearInterval(timer);
+          initGoogle();
+          clearInterval(checkTimer);
         }
       }, 300);
-      return () => clearInterval(timer);
     }
+
+    return () => {
+      if (checkTimer) clearInterval(checkTimer);
+    };
   }, [clientId, role, businessName]);
 
+  // 3. Fallback / Custom click: triggers Google OAuth popup directly
   const handleCustomButtonClick = () => {
-    if (clientId && window.google?.accounts?.id) {
-      // Trigger Google One Tap / prompt
+    if (clientId && window.google?.accounts?.oauth2) {
       try {
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // If One Tap is skipped or blocked by browser cookies, open modal fallback
-            setShowConfigModal(true);
+        setLoading(true);
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.error) {
+              setLoading(false);
+              toast.error('Google sign-in was cancelled or encountered an error.');
+              return;
+            }
+
+            if (tokenResponse?.access_token) {
+              try {
+                // Fetch profile directly from Google
+                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+
+                if (!userRes.ok) throw new Error('Could not fetch user profile from Google');
+
+                const profile = await userRes.json();
+                const res = await api.post<{
+                  success: boolean;
+                  message: string;
+                  token: string;
+                  user: any;
+                }>('/auth/google', {
+                  email: profile.email,
+                  name: profile.name,
+                  image: profile.picture,
+                  role,
+                  businessName: role === 'vendor' ? businessName : undefined
+                });
+
+                completeAuth(res);
+              } catch (e: any) {
+                toast.error(e?.message || 'Failed to authenticate Google user.');
+              } finally {
+                setLoading(false);
+              }
+            } else {
+              setLoading(false);
+            }
           }
         });
-      } catch (e) {
-        setShowConfigModal(true);
+
+        tokenClient.requestAccessToken();
+        return;
+      } catch (err) {
+        setLoading(false);
+        console.warn('Direct OAuth2 popup error:', err);
       }
-    } else {
-      // No Client ID configured yet: open fallback modal
-      setShowConfigModal(true);
     }
+
+    // If client ID is completely missing, show notice modal
+    setShowConfigModal(true);
   };
 
   const handleManualGoogleAuth = async (e: React.FormEvent) => {
@@ -163,23 +218,8 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
         businessName: role === 'vendor' ? businessName : undefined
       });
 
-      if (res.success && res.token && res.user) {
-        login(res.token, res.user);
-        toast.success(`Welcome, ${res.user.name}! Signed in via Google.`);
-        setShowConfigModal(false);
-
-        if (redirectUrl) {
-          router.push(redirectUrl);
-        } else if (res.user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (res.user.role === 'vendor') {
-          router.push('/dashboard/vendor');
-        } else {
-          router.push('/dashboard/customer');
-        }
-      } else {
-        toast.error(res.message || 'Google sign-in failed.');
-      }
+      setShowConfigModal(false);
+      completeAuth(res);
     } catch (error: any) {
       toast.error(error.message || 'Authentication error.');
     } finally {
@@ -188,17 +228,17 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   };
 
   return (
-    <div className="w-full">
-      {/* If official rendered button is available, we display it centered */}
+    <div className="w-full flex flex-col items-center">
+      {/* Official Google GIS Button Container */}
       {clientId && (
         <div
           ref={googleBtnContainerRef}
-          className="flex justify-center mb-2 overflow-hidden rounded-xl"
+          className="w-full flex justify-center mb-1 overflow-hidden"
         />
       )}
 
-      {/* Styled Brand Google Button */}
-      {(!clientId || !googleBtnContainerRef.current?.hasChildNodes()) && (
+      {/* Branded Google Button (displayed if Google GIS button is still loading or as direct OAuth popup) */}
+      {!btnRendered && (
         <button
           type="button"
           onClick={handleCustomButtonClick}
@@ -227,14 +267,14 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
         </button>
       )}
 
-      {/* Google Sign-in Modal / Quick Connect Dialog */}
+      {/* Quick Connect / Simulation Modal if Client ID is missing */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-stone-200 relative animate-in fade-in zoom-in-95 duration-200">
             <button
               type="button"
               onClick={() => setShowConfigModal(false)}
-              className="absolute top-5 right-5 text-stone-400 hover:text-stone-600 rounded-full p-1 transition"
+              className="absolute top-5 right-5 text-stone-400 hover:text-stone-600 rounded-full p-1 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -248,18 +288,6 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
                 <p className="text-xs text-stone-500">Sign in with your Google account</p>
               </div>
             </div>
-
-            {!clientId && (
-              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200/70 text-xs text-amber-800 space-y-1">
-                <p className="font-semibold">💡 Google Client ID Setup Notice:</p>
-                <p>
-                  To enable the official Google popup in production, add your Client ID to your environment variables:
-                  <code className="block mt-1 font-mono text-[11px] bg-amber-100/70 p-1 rounded">
-                    NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_id.apps.googleusercontent.com
-                  </code>
-                </p>
-              </div>
-            )}
 
             <form onSubmit={handleManualGoogleAuth} className="space-y-3.5">
               <div>
