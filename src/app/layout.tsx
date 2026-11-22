@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-[#fffafa] text-stone-900 antialiased">
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <AuthProvider>
           <ToastProvider />
           <Navbar />
